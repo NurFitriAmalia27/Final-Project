@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Welcome - Manajemen Keuangan</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <style>
+        body {
+            background: url('https://images.unsplash.com/photo-1556740738-b6a63e27c4df') no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+        }
+        .welcome-container {
+            margin-top: 150px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .welcome-header {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .welcome-subtitle {
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+        .form-control {
+            background: rgba(255, 255, 255, 0.8);
+        }
+        .btn-primary {
+            background-color: #00bcd4;
+            border-color: #00bcd4;
+        }
+    </style>
+</head>
+<body>
+<div class="container welcome-container">
+    <h1 class="welcome-header">Selamat Datang di Aplikasi Manajemen Keuangan Anda</h1>
+    <p class="welcome-subtitle">Rencanakan keuangan Anda dengan bijak. Input pemasukan bulanan Anda di sini untuk memulai.</p>
+    <form action="/saveIncome" method="post">
+        <div class="form-group">
+            <label for="income">Pemasukan Bulanan Anda (Rp)</label>
+            <input type="number" id="income" name="income" class="form-control" placeholder="Masukkan jumlah pemasukan bulanan" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Simpan Pemasukan</button>
+    </form>
+</div>
+</body>
+</html>

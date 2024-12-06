@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Dashboard Keuangan</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="container">
+    <h1>Dashboard Keuangan</h1>
+
+    <h3>Prediksi Pengeluaran Bulan Ini</h3>
+    <p th:text="'Prediksi pengeluaran bulan ini: Rp ' + ${prediction}"></p>
+
+    <h3>Grafik Pengeluaran per Bulan</h3>
+    <canvas id="expenseBarChart" width="800" height="400"></canvas>
+
+    <h3>Grafik Pengeluaran per Kategori</h3>
+    <img th:src="${chartUrl}" alt="Grafik Pengeluaran Kategori" class="img-fluid">
+</div>
+
+<script>
+    // Data dummy untuk grafik batang (ganti dengan data aktual dari backend jika diperlukan)
+    const barChartData = {
+        labels: ['Januari', 'Februari', 'Maret', 'April'],
+        datasets: [{
+            label: 'Pengeluaran (Rp)',
+            data: [1000, 1500, 2000, 1700],
+            backgroundColor: 'rgba(54, 162, 235, 0.6)'
+        }]
+    };
+
+    // Membuat grafik batang dengan Chart.js
+    const ctx = document.getElementById('expenseBarChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: barChartData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true
+                },
+                title: {
+                    display: true,
+                    text: 'Pengeluaran Bulanan'
+                }
+            }
+        }
+    });
+</script>
+</body>
+</html>
