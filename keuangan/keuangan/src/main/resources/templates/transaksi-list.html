@@ -38,6 +38,7 @@
             <th>Kategori</th>
             <th>Jumlah</th>
             <th>Tanggal</th>
+            <th>Action</th>
         </tr>
         </thead>
         <tbody>
@@ -46,6 +47,10 @@
             <td th:text="${transaksi.kategori}"></td>
             <td th:text="${transaksi.jumlah}"></td>
             <td th:text="${transaksi.tanggal}"></td>
+            <td>
+                <a th:href="@{'/transaksi/edit/' + ${transaksi.id}}" class="btn btn-warning btn-sm">Edit</a>
+                <a th:href="@{'/transaksi/delete/' + ${transaksi.id}}" class="btn btn-danger btn-sm" onclick="return confirm('Apakah Anda yakin ingin menghapus transaksi ini?');">Hapus</a>
+            </td>
         </tr>
         </tbody>
     </table>

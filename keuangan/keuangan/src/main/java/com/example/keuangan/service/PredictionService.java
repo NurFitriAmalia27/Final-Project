@@ -1,5 +1,6 @@
 package com.example.keuangan.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -8,11 +9,14 @@ public class PredictionService {
 
     private final String flaskApiUrl = "http://localhost:5000/predict";
 
+    @Autowired
+    private RestTemplate restTemplate;
+
     public Double getPrediction(int month) {
         try {
             String requestUrl = flaskApiUrl + "?month=" + month;
 
-            RestTemplate restTemplate = new RestTemplate();
+            // Gunakan RestTemplate yang sudah disuntikkan oleh Spring
             PredictionResponse response = restTemplate.getForObject(requestUrl, PredictionResponse.class);
 
             if (response != null && "success".equalsIgnoreCase(response.getStatus())) {
