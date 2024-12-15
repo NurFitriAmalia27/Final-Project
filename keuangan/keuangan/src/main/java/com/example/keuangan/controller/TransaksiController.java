@@ -20,7 +20,7 @@ public class TransaksiController {
     @Autowired
     private RestTemplate restTemplate;
 
-    @Autowired  // Menambahkan @Autowired di sini
+    @Autowired  
     private TransaksiRepository transaksiRepository;
 
     private BigDecimal income;
@@ -33,7 +33,7 @@ public class TransaksiController {
 
     @GetMapping
     public String listTransaksiWithIncome(Model model) {
-        List<Transaksi> transaksiList = transaksiRepository.findAll();  // Tidak akan null lagi setelah @Autowired ditambahkan
+        List<Transaksi> transaksiList = transaksiRepository.findAll();  
         model.addAttribute("transaksiList", transaksiList);
         model.addAttribute("income", income);
         return "transaksi-list";
