@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import pickle
-import numpy as np
+import pandas as pd
+from model import save_model  
 
 app = Flask(__name__)
 
@@ -10,6 +11,17 @@ def load_model():
         model = pickle.load(file)
     return model
 
+# Endpoint untuk pelatihan ulang model
+@app.route('/retrain', methods=['POST'])
+def retrain_model():
+    try:
+        save_model()  
+        global model
+        model = load_model()  
+        return jsonify({'status': 'success', 'message': 'Model berhasil dilatih ulang.'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 # Load model saat aplikasi dimulai
 model = load_model()
 
@@ -17,17 +29,30 @@ model = load_model()
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
+        # Ambil data dari request
         data = request.get_json()
         months = data.get('months', [])
+        income_data = data.get('income', {})
 
-        if not months:
-            return jsonify({'status': 'error', 'message': 'Data bulan tidak ditemukan.'}), 400
+        if not months or not income_data:
+            return jsonify({'status': 'error', 'message': 'Data bulan atau income tidak ditemukan.'}), 400
 
-        # Prediksi pengeluaran bulan depan
+        # Konversi income_data menjadi DataFrame
+        income_df = pd.DataFrame(list(income_data.items()), columns=['month', 'income'])
+        income_df['month'] = income_df['month'].astype(int)
+        income_df['income'] = income_df['income'].astype(float)
+
         next_month = max(months) + 1
-        predicted_expense = model.predict([[next_month]])[0]
+        input_data = pd.DataFrame({'month': [next_month], 'kategori': ['dummy'], 'income': [income_data.get(str(next_month), 0)]})
+        input_data = pd.get_dummies(input_data, drop_first=True)
 
-        # Membulatkan prediksi ke ratusan terdekat
+        model_features = model.feature_names_in_
+        for col in model_features:
+            if col not in input_data.columns:
+                input_data[col] = 0
+
+        input_data = input_data[model_features]
+        predicted_expense = model.predict(input_data)[0]
         rounded_expense = round(predicted_expense, -2)
         formatted_expense = f"Rp.{rounded_expense:,.0f}".replace(',', '.')
 

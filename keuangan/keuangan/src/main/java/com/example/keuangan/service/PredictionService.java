@@ -15,15 +15,13 @@ public class PredictionService {
     public Double getPrediction(int month) {
         try {
             String requestUrl = flaskApiUrl + "?month=" + month;
-
-            // Gunakan RestTemplate yang sudah disuntikkan oleh Spring
             PredictionResponse response = restTemplate.getForObject(requestUrl, PredictionResponse.class);
 
             if (response != null && "success".equalsIgnoreCase(response.getStatus())) {
                 return response.getPrediction();
             }
         } catch (Exception e) {
-            System.out.println("Error saat melakukan prediksi: " + e.getMessage());
+            System.err.println("Error saat mengambil prediksi: " + e.getMessage());
         }
         return null;
     }

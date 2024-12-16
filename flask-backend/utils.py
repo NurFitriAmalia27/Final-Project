@@ -12,13 +12,18 @@ def get_data_from_db():
             password='mysql123',
             database='keuangandb'
         )
-        query = "SELECT tanggal, jumlah FROM transaksi"
-        df = pd.read_sql(query, connection)
+        query_transaksi = "SELECT tanggal, jumlah, kategori FROM transaksi"
+        query_income = "SELECT month, amount FROM income"
+        
+        df_transaksi = pd.read_sql(query_transaksi, connection)
+        df_income = pd.read_sql(query_income, connection)
         connection.close()
 
         # Konversi kolom tanggal menjadi bulan
-        df['month'] = pd.to_datetime(df['tanggal']).dt.month
-        return df
+        df_transaksi['month'] = pd.to_datetime(df_transaksi['tanggal']).dt.month
+        df_transaksi_monthly = df_transaksi.groupby(['month', 'kategori'])['jumlah'].sum().reset_index()
+
+        return df_transaksi_monthly
     except Exception as e:
         print(f"Error: {e}")
         return pd.DataFrame()
@@ -36,17 +41,22 @@ def generate_charts():
     chart_folder = os.path.join('static', 'charts')
     ensure_folder(chart_folder)
 
-    # Pie chart berdasarkan total pengeluaran per bulan
-    monthly_data = df.groupby('month')['jumlah'].sum()
-    months = monthly_data.index.tolist()
-    amounts = monthly_data.values.tolist()
+    # Pie chart berdasarkan total pengeluaran per kategori
+    category_data = df.groupby('kategori')['jumlah'].sum()
+    categories = category_data.index.tolist()
+    amounts = category_data.values.tolist()
+    percentages = [amount / sum(amounts) * 100 for amount in amounts]
 
     fig1, ax1 = plt.subplots()
-    ax1.pie(amounts, labels=[f'Bulan {m}' for m in months], autopct='%1.1f%%', startangle=90)
+    ax1.pie(amounts, labels=[f'{cat} ({percent:.1f}%)' for cat, percent in zip(categories, percentages)], autopct='%1.1f%%', startangle=90)
     ax1.axis('equal')
     fig1.savefig(os.path.join(chart_folder, 'pie_chart.png'))
 
     # Bar chart pengeluaran bulanan
+    monthly_data = df.groupby('month')['jumlah'].sum()
+    months = monthly_data.index.tolist()
+    amounts = monthly_data.values.tolist()
+
     fig2, ax2 = plt.subplots()
     ax2.bar(months, amounts)
     ax2.set_xlabel('Bulan')

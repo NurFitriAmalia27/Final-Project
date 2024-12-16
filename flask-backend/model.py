@@ -3,7 +3,7 @@ from sklearn.linear_model import LinearRegression
 import pymysql
 import pickle
 
-# Fungsi untuk mengambil data dari database
+# Fungsi untuk mengambil data transaksi dan income dari database
 def get_data_from_db():
     connection = pymysql.connect(
         host='localhost',
@@ -11,32 +11,34 @@ def get_data_from_db():
         password='mysql123',
         database='keuangandb'
     )
-    query = "SELECT tanggal, jumlah FROM transaksi"
-    df = pd.read_sql(query, connection)
+    query_transaksi = "SELECT tanggal, jumlah, kategori FROM transaksi"
+    query_income = "SELECT month, amount FROM income"
+
+    df_transaksi = pd.read_sql(query_transaksi, connection)
+    df_income = pd.read_sql(query_income, connection)
     connection.close()
 
-    # Konversi kolom tanggal menjadi bulan (numerik)
-    df['month'] = pd.to_datetime(df['tanggal']).dt.month
-    df = df.groupby('month')['jumlah'].sum().reset_index()
-    df.rename(columns={'jumlah': 'expenses'}, inplace=True)
+    df_transaksi['month'] = pd.to_datetime(df_transaksi['tanggal']).dt.month
+    df_transaksi_monthly = df_transaksi.groupby(['month', 'kategori'])['jumlah'].sum().reset_index()
+
+    df = pd.merge(df_transaksi_monthly, df_income, on='month', how='left')
+    df['expenses'] = df['jumlah']
+    df['income'] = df['amount']
+
     return df
 
-# Fungsi untuk menyimpan model Linear Regression
+# Fungsi untuk melatih model
 def save_model():
     df = get_data_from_db()
-    print("Data dari database:\n", df)  # Debugging: Menampilkan data
+    X = pd.get_dummies(df[['month', 'kategori', 'income']], drop_first=True)
+    y = df['expenses']
 
-    X = df[['month']]  # Fitur (bulan)
-    y = df['expenses']  # Target (pengeluaran)
+    X.fillna(0, inplace=True)
+    y.fillna(0, inplace=True)
 
-    # Membuat dan melatih model
     model = LinearRegression()
     model.fit(X, y)
 
-    # Menyimpan model ke file
     with open('model.pkl', 'wb') as file:
         pickle.dump(model, file)
-    print("Model berhasil disimpan sebagai 'model.pkl'.")
-
-if __name__ == '__main__':
-    save_model()
+    print("Model berhasil diperbarui dan disimpan.")

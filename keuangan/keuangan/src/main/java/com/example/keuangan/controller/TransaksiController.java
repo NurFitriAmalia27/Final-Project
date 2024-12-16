@@ -1,6 +1,8 @@
 package com.example.keuangan.controller;
 
+import com.example.keuangan.entity.Income;
 import com.example.keuangan.entity.Transaksi;
+import com.example.keuangan.repository.IncomeRepository;
 import com.example.keuangan.repository.TransaksiRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -9,9 +11,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 
 @Controller
 @RequestMapping("/transaksi")
@@ -20,35 +23,52 @@ public class TransaksiController {
     @Autowired
     private RestTemplate restTemplate;
 
-    @Autowired  
+    @Autowired
     private TransaksiRepository transaksiRepository;
 
-    private BigDecimal income;
+    @Autowired
+    private IncomeRepository incomeRepository;
 
     @PostMapping("/setIncome")
     public String setIncome(@RequestParam("income") BigDecimal income) {
-        this.income = income;
+        LocalDate currentMonth = LocalDate.now().withDayOfMonth(1);
+        Income existingIncome = incomeRepository.findByMonth(currentMonth);
+
+        if (existingIncome == null) {
+            Income newIncome = new Income();
+            newIncome.setAmount(income.doubleValue());
+            newIncome.setMonth(currentMonth);
+            incomeRepository.save(newIncome);
+        } else {
+            existingIncome.setAmount(income.doubleValue());
+            incomeRepository.save(existingIncome);
+        }
         return "redirect:/transaksi";
     }
 
     @GetMapping
     public String listTransaksiWithIncome(Model model) {
-        List<Transaksi> transaksiList = transaksiRepository.findAll();  
+        List<Transaksi> transaksiList = transaksiRepository.findAll();
+        LocalDate currentMonth = LocalDate.now().withDayOfMonth(1);
+        Income currentIncome = incomeRepository.findByMonth(currentMonth);
+
         model.addAttribute("transaksiList", transaksiList);
-        model.addAttribute("income", income);
+        model.addAttribute("income", currentIncome != null ? currentIncome.getAmount() : 0);
         return "transaksi-list";
     }
 
     @GetMapping("/edit/{id}")
     public String editTransaksi(@PathVariable Long id, Model model) {
-        Transaksi transaksi = transaksiRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Invalid transaksi ID: " + id));
+        Transaksi transaksi = transaksiRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid transaksi ID: " + id));
         model.addAttribute("transaksi", transaksi);
         return "transaksi-edit";
     }
 
     @PostMapping("/update/{id}")
     public String updateTransaksi(@PathVariable Long id, @ModelAttribute Transaksi transaksi) {
-        Transaksi existingTransaksi = transaksiRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Invalid transaksi ID: " + id));
+        Transaksi existingTransaksi = transaksiRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid transaksi ID: " + id));
         existingTransaksi.setKategori(transaksi.getKategori());
         existingTransaksi.setJumlah(transaksi.getJumlah());
         existingTransaksi.setTanggal(transaksi.getTanggal());
@@ -71,8 +91,15 @@ public class TransaksiController {
     @GetMapping("/dashboard")
     public String showDashboard(Model model) {
         try {
-            // Ambil semua transaksi untuk dikirim ke Flask
+            // Ambil semua transaksi dan pemasukan
             List<Transaksi> transaksiList = transaksiRepository.findAll();
+            LocalDate currentMonth = LocalDate.now().withDayOfMonth(1);
+            Income currentIncome = incomeRepository.findByMonth(currentMonth);
+
+            if (currentIncome == null) {
+                model.addAttribute("error", "Pemasukan bulan ini belum diinput.");
+                return "dashboard";
+            }
 
             // Siapkan data untuk dikirim ke Flask
             List<Integer> months = transaksiList.stream()
@@ -81,24 +108,34 @@ public class TransaksiController {
             List<Double> expenses = transaksiList.stream()
                     .map(Transaksi::getJumlah)
                     .toList();
+            double income = currentIncome.getAmount();
 
-            // Kirim data ke Flask untuk prediksi
-            String prediction = getPredictionFromFlask(months, expenses);
+            String prediction = getPredictionFromFlask(months, expenses, income);
+
             model.addAttribute("prediction", prediction);
+            model.addAttribute("totalIncome", income);
+            model.addAttribute("totalExpenses", expenses.stream().mapToDouble(Double::doubleValue).sum());
         } catch (Exception e) {
-            model.addAttribute("error", "Gagal mengambil data prediksi.");
+            model.addAttribute("error", "Gagal mengambil data prediksi: " + e.getMessage());
         }
 
         return "dashboard";
     }
 
-    private String getPredictionFromFlask(List<Integer> months, List<Double> expenses) {
-        String url = "http://localhost:5000/predict";
+    private String getPredictionFromFlask(List<Integer> months, List<Double> expenses, double income) {
+        String url = "http://localhost:5000/predict"; // Flask API endpoint
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("months", months);
         requestBody.put("expenses", expenses);
+        requestBody.put("income", income);
 
-        return restTemplate.postForObject(url, requestBody, String.class);
+        try {
+            // Mengirim request POST ke Flask API
+            return restTemplate.postForObject(url, requestBody, String.class);
+        } catch (Exception e) {
+            System.err.println("Error saat memanggil Flask API: " + e.getMessage());
+            return "Tidak dapat memprediksi data saat ini.";
+        }
     }
 
     @GetMapping("/chart-data")
@@ -119,6 +156,4 @@ public class TransaksiController {
         response.put("amounts", categoryTotals.values());
         return response;
     }
-
-
 }
