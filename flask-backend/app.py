@@ -32,18 +32,13 @@ def predict():
         # Ambil data dari request
         data = request.get_json()
         months = data.get('months', [])
-        income_data = data.get('income', {})
 
-        if not months or not income_data:
-            return jsonify({'status': 'error', 'message': 'Data bulan atau income tidak ditemukan.'}), 400
+        if not months:
+            return jsonify({'status': 'error', 'message': 'Data bulan tidak ditemukan.'}), 400
 
-        # Konversi income_data menjadi DataFrame
-        income_df = pd.DataFrame(list(income_data.items()), columns=['month', 'income'])
-        income_df['month'] = income_df['month'].astype(int)
-        income_df['income'] = income_df['income'].astype(float)
-
+        # Data prediksi hanya menggunakan bulan tanpa income
         next_month = max(months) + 1
-        input_data = pd.DataFrame({'month': [next_month], 'kategori': ['dummy'], 'income': [income_data.get(str(next_month), 0)]})
+        input_data = pd.DataFrame({'month': [next_month], 'kategori': ['dummy']})
         input_data = pd.get_dummies(input_data, drop_first=True)
 
         model_features = model.feature_names_in_
@@ -62,3 +57,4 @@ def predict():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+

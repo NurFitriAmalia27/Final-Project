@@ -13,10 +13,7 @@ def get_data_from_db():
             database='keuangandb'
         )
         query_transaksi = "SELECT tanggal, jumlah, kategori FROM transaksi"
-        query_income = "SELECT month, amount FROM income"
-        
         df_transaksi = pd.read_sql(query_transaksi, connection)
-        df_income = pd.read_sql(query_income, connection)
         connection.close()
 
         # Konversi kolom tanggal menjadi bulan
