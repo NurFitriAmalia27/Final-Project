@@ -9,6 +9,8 @@
 <div class="container mt-4">
     <h1>Dashboard Prediksi</h1>
     <p>Prediksi pengeluaran bulan depan: <strong th:text="${prediction}"></strong></p>
+    <p th:if="${std_dev != null}">Standar Deviasi Prediksi: <strong th:text="${std_dev}"></strong></p>
+    <p th:if="${std_dev == null}">Standar Deviasi Prediksi: <strong>Tidak Tersedia</strong></p>
 
     <div class="row">
         <!-- Pie Chart -->
@@ -30,7 +32,6 @@
 </div>
 
 <script>
-    // Pie Chart
     fetch('/transaksi/chart-data')
     .then(response => response.json())
     .then(data => {

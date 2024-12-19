@@ -1,35 +1,34 @@
 from flask import Flask, request, jsonify
 import pickle
 import pandas as pd
-from model import save_model  
+from model import save_model, get_data_from_db
 
 app = Flask(__name__)
 
-# Fungsi untuk memuat model yang telah disimpan
+# Memuat model yang telah disimpan
 def load_model():
     with open('model.pkl', 'rb') as file:
-        model = pickle.load(file)
-    return model
+        data = pickle.load(file)
+    return data['model'], data['std_dev']
 
 # Endpoint untuk pelatihan ulang model
 @app.route('/retrain', methods=['POST'])
 def retrain_model():
     try:
         save_model()  
-        global model
-        model = load_model()  
+        global model, std_dev
+        model, std_dev = load_model()  
         return jsonify({'status': 'success', 'message': 'Model berhasil dilatih ulang.'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # Load model saat aplikasi dimulai
-model = load_model()
+model, std_dev = load_model()
 
 # Endpoint untuk prediksi pengeluaran bulan depan
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        # Ambil data dari request
         data = request.get_json()
         months = data.get('months', [])
 
@@ -49,8 +48,12 @@ def predict():
         predicted_expense = model.predict(input_data)[0]
         rounded_expense = round(predicted_expense, -2)
         formatted_expense = f"Rp.{rounded_expense:,.0f}".replace(',', '.')
-
-        return jsonify({'status': 'success', 'prediction': formatted_expense})
+        formatted_std_dev = f"Rp.{std_dev:,.0f}".replace(',', '.')
+        return jsonify({
+            'status': 'success',
+            'prediction': formatted_expense,
+            'std_dev': formatted_std_dev
+        })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
@@ -70,7 +73,6 @@ def chart_data():
         months = monthly_data.index.tolist()
         monthly_amounts = monthly_data.values.tolist()
 
-        # Data bulan terurut
         months_sorted = sorted(months)
         monthly_amounts_sorted = [monthly_amounts[months.index(month)] for month in months_sorted]
 
@@ -82,6 +84,6 @@ def chart_data():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

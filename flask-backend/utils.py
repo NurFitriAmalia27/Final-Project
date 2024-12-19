@@ -3,7 +3,7 @@ import os
 import pymysql
 import pandas as pd
 
-# Fungsi untuk mengambil data dari database
+# Mengambil data dari database
 def get_data_from_db():
     try:
         connection = pymysql.connect(
@@ -30,12 +30,11 @@ def ensure_folder(folder_path):
 
 # Fungsi untuk menghasilkan grafik
 def generate_charts():
-    # Ambil data dari database
     df = get_data_from_db()
 
     # Pastikan folder untuk menyimpan chart tersedia
     chart_folder = os.path.join('static', 'charts')
-    ensure_folder(chart_folder)  # Pastikan folder tersedia
+    ensure_folder(chart_folder)  
 
     # Pie chart berdasarkan total pengeluaran per kategori
     try:

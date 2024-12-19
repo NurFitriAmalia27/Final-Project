@@ -108,7 +108,7 @@ public class TransaksiController {
                     .toList();
             double income = currentIncome.getAmount();
 
-            String prediction = getPredictionFromFlask(months, expenses, income);
+            String prediction = getPredictionFromFlask(months, expenses, income, model);
 
             model.addAttribute("prediction", prediction);
             model.addAttribute("totalIncome", income);
@@ -120,7 +120,7 @@ public class TransaksiController {
         return "dashboard";
     }
 
-    private String getPredictionFromFlask(List<Integer> months, List<Double> expenses, double income) {
+    private String getPredictionFromFlask(List<Integer> months, List<Double> expenses, double income, Model model) {
         String url = "http://localhost:5000/predict"; // Flask API endpoint
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("months", months);
@@ -128,9 +128,14 @@ public class TransaksiController {
         requestBody.put("income", income);
 
         try {
-            return restTemplate.postForObject(url, requestBody, String.class);
+            Map<String, Object> response = restTemplate.postForObject(url, requestBody, Map.class);
+            String prediction = (String) response.get("prediction");
+            String stdDev = (String) response.get("std_dev");
+
+            model.addAttribute("std_dev", stdDev);
+            return prediction;
         } catch (Exception e) {
-            System.err.println("Error saat memanggil Flask API: " + e.getMessage());
+            model.addAttribute("error", "Gagal memanggil Flask API: " + e.getMessage());
             return "Tidak dapat memprediksi data saat ini.";
         }
     }
