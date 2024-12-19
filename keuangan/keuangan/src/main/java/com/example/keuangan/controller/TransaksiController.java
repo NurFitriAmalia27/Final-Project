@@ -12,9 +12,9 @@ import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.Month;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/transaksi")
@@ -91,7 +91,6 @@ public class TransaksiController {
     @GetMapping("/dashboard")
     public String showDashboard(Model model) {
         try {
-            // Ambil semua transaksi dan pemasukan
             List<Transaksi> transaksiList = transaksiRepository.findAll();
             LocalDate currentMonth = LocalDate.now().withDayOfMonth(1);
             Income currentIncome = incomeRepository.findByMonth(currentMonth);
@@ -101,7 +100,6 @@ public class TransaksiController {
                 return "dashboard";
             }
 
-            // Siapkan data untuk dikirim ke Flask
             List<Integer> months = transaksiList.stream()
                     .map(transaksi -> transaksi.getTanggal().getMonthValue())
                     .toList();
@@ -130,7 +128,6 @@ public class TransaksiController {
         requestBody.put("income", income);
 
         try {
-            // Mengirim request POST ke Flask API
             return restTemplate.postForObject(url, requestBody, String.class);
         } catch (Exception e) {
             System.err.println("Error saat memanggil Flask API: " + e.getMessage());
@@ -143,7 +140,7 @@ public class TransaksiController {
     public Map<String, Object> getChartData() {
         List<Transaksi> transaksiList = transaksiRepository.findAll();
 
-        // Proses data untuk grafik
+        // Pengeluaran per kategori
         Map<String, Double> categoryTotals = new HashMap<>();
         transaksiList.forEach(transaksi -> categoryTotals.merge(
                 transaksi.getKategori(),
@@ -151,9 +148,25 @@ public class TransaksiController {
                 Double::sum
         ));
 
+        // Pengeluaran per bulan
+        Map<Month, Double> monthlyTotals = transaksiList.stream()
+                .collect(Collectors.groupingBy(
+                        transaksi -> transaksi.getTanggal().getMonth(),
+                        TreeMap::new, // Mengurutkan bulan secara kronologis
+                        Collectors.summingDouble(Transaksi::getJumlah)
+                ));
+
+        List<String> months = monthlyTotals.keySet().stream()
+                .map(Month::name)
+                .toList();
+        List<Double> monthlyAmounts = new ArrayList<>(monthlyTotals.values());
+
         Map<String, Object> response = new HashMap<>();
         response.put("categories", categoryTotals.keySet());
         response.put("amounts", categoryTotals.values());
+        response.put("months", months);
+        response.put("monthly_amounts", monthlyAmounts);
+
         return response;
     }
 }

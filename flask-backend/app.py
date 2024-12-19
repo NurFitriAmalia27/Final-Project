@@ -36,7 +36,6 @@ def predict():
         if not months:
             return jsonify({'status': 'error', 'message': 'Data bulan tidak ditemukan.'}), 400
 
-        # Data prediksi hanya menggunakan bulan tanpa income
         next_month = max(months) + 1
         input_data = pd.DataFrame({'month': [next_month], 'kategori': ['dummy']})
         input_data = pd.get_dummies(input_data, drop_first=True)
@@ -55,6 +54,34 @@ def predict():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+# Endpoint untuk chart data
+@app.route('/transaksi/chart-data')
+def chart_data():
+    try:
+        df = get_data_from_db()
+
+        # Data untuk Pie Chart
+        category_data = df.groupby('kategori')['jumlah'].sum()
+        categories = category_data.index.tolist()
+        amounts = category_data.values.tolist()
+
+        # Data untuk Bar Chart
+        monthly_data = df.groupby('month')['jumlah'].sum()
+        months = monthly_data.index.tolist()
+        monthly_amounts = monthly_data.values.tolist()
+
+        # Data bulan terurut
+        months_sorted = sorted(months)
+        monthly_amounts_sorted = [monthly_amounts[months.index(month)] for month in months_sorted]
+
+        return jsonify({
+            'categories': categories,
+            'amounts': amounts,
+            'months': months_sorted,
+            'monthly_amounts': monthly_amounts_sorted
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
-
